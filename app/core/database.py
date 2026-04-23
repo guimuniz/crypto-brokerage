@@ -18,7 +18,7 @@ settings = get_settings()
 # A single engine is created at module import time and reused across requests.
 # The engine manages the connection pool internally.
 engine: AsyncEngine = create_async_engine(
-    str(settings.database_url),
+    settings.database_url,
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_max_overflow,
     pool_timeout=settings.db_pool_timeout,

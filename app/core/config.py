@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, PostgresDsn, SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,9 +21,8 @@ class Settings(BaseSettings):
 
     # ── Database ─────────────────────────────────────────────────────────────
     # Example: postgresql+asyncpg://user:password@localhost:5432/brokerage
-    database_url: PostgresDsn = Field(
-        default="postgresql+asyncpg://brokerage:brokerage@localhost:5432/brokerage"
-    )
+    # Must be set via DATABASE_URL environment variable or .env file.
+    database_url: str = Field(default=...)
     # SQLAlchemy pool settings
     db_pool_size: int = 10
     db_max_overflow: int = 20
@@ -32,18 +31,18 @@ class Settings(BaseSettings):
 
     # ── Auth / JWT ────────────────────────────────────────────────────────────
     # IMPORTANT: Override via environment variable in all non-development environments.
-    jwt_secret_key: SecretStr = Field(default="CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET")
+    jwt_secret_key: SecretStr = SecretStr("CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET")
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
 
     # ── Integration Gateways ──────────────────────────────────────────────────
     exchange_api_url: str = "https://api.exchange.example.com"
-    exchange_api_key: SecretStr = Field(default="stub_key")
-    exchange_api_secret: SecretStr = Field(default="stub_secret")
+    exchange_api_key: SecretStr = SecretStr("stub_key")
+    exchange_api_secret: SecretStr = SecretStr("stub_secret")
 
     banking_api_url: str = "https://api.banking.example.com"
-    banking_api_key: SecretStr = Field(default="stub_key")
+    banking_api_key: SecretStr = SecretStr("stub_key")
 
     # ── CORS ─────────────────────────────────────────────────────────────────
     cors_allowed_origins: list[str] = Field(

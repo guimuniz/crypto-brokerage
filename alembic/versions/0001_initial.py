@@ -18,6 +18,12 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # ── Constants ─────────────────────────────────────────────────────────────
+    FK_USERS_ID = "users.id"
+    FK_ACCOUNTS_ID = "accounts.id"
+    FK_ASSETS_ID = "assets.id"
+    FK_ORDERS_ID = "orders.id"
+
     # ── Enums (use DO blocks for IF NOT EXISTS support) ─────────────────────
     enums = {
         "kyc_status_enum": ("PENDING", "APPROVED", "REJECTED"),
@@ -62,7 +68,7 @@ def upgrade() -> None:
         sa.Column("country", sa.String(2), nullable=False, server_default="BR"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], [FK_USERS_ID], ondelete="CASCADE"),
         sa.UniqueConstraint("user_id", name="uq_user_profiles_user_id"),
     )
     op.create_index("ix_user_profiles_user_id", "user_profiles", ["user_id"])
@@ -76,7 +82,7 @@ def upgrade() -> None:
         sa.Column("account_type", postgresql.ENUM("FIAT", "CRYPTO", "RESERVE", name="account_type_enum", create_type=False), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], [FK_USERS_ID], ondelete="CASCADE"),
         sa.UniqueConstraint("user_id", "currency", name="uq_accounts_user_currency"),
     )
     op.create_index("ix_accounts_user_id", "accounts", ["user_id"])
@@ -91,7 +97,7 @@ def upgrade() -> None:
         sa.Column("status", postgresql.ENUM("PENDING", "ACTIVE", "INACTIVE", "REJECTED", name="bank_account_status_enum", create_type=False), nullable=False, server_default="PENDING"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], [FK_USERS_ID], ondelete="CASCADE"),
     )
     op.create_index("ix_bank_accounts_user_id", "bank_accounts", ["user_id"])
 
@@ -124,8 +130,8 @@ def upgrade() -> None:
         sa.Column("idempotency_key", sa.String(128), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["asset_id"], ["assets.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["user_id"], [FK_USERS_ID], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["asset_id"], [FK_ASSETS_ID], ondelete="RESTRICT"),
         sa.UniqueConstraint("idempotency_key", name="uq_orders_idempotency_key"),
     )
     op.create_index("ix_orders_user_id_status", "orders", ["user_id", "status"])
@@ -143,7 +149,7 @@ def upgrade() -> None:
         sa.Column("timestamp", sa.DateTime(timezone=True), nullable=False),
         sa.Column("external_fill_id", sa.String(128), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["order_id"], ["orders.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["order_id"], [FK_ORDERS_ID], ondelete="CASCADE"),
     )
     op.create_index("ix_trade_executions_order_id", "trade_executions", ["order_id"])
 
@@ -157,8 +163,8 @@ def upgrade() -> None:
         sa.Column("average_price", sa.Numeric(36, 18), nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["asset_id"], ["assets.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["user_id"], [FK_USERS_ID], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["asset_id"], [FK_ASSETS_ID], ondelete="RESTRICT"),
         sa.UniqueConstraint("user_id", "asset_id", name="uq_positions_user_asset"),
     )
     op.create_index("ix_positions_user_id", "positions", ["user_id"])
@@ -173,7 +179,7 @@ def upgrade() -> None:
         sa.Column("reference_id", sa.String(255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["user_id"], [FK_USERS_ID], ondelete="RESTRICT"),
     )
     op.create_index("ix_transactions_user_id_status", "transactions", ["user_id", "status"])
     op.create_index("ix_transactions_reference_id", "transactions", ["reference_id"])
@@ -192,8 +198,8 @@ def upgrade() -> None:
         sa.Column("reference_id", sa.String(128), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.ForeignKeyConstraint(["debit_account_id"], ["accounts.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["credit_account_id"], ["accounts.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["debit_account_id"], [FK_ACCOUNTS_ID], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["credit_account_id"], [FK_ACCOUNTS_ID], ondelete="RESTRICT"),
     )
     op.create_index("ix_ledger_debit_account_id", "ledger_entries", ["debit_account_id"])
     op.create_index("ix_ledger_credit_account_id", "ledger_entries", ["credit_account_id"])
