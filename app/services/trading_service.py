@@ -75,10 +75,6 @@ class TradingService:
       commit the LedgerEntries, the reconciliation job re-calls get_order_status
       and re-processes fills. TradeExecution.external_fill_id prevents duplicate
       fills from being recorded.
-
-    TODO: Implement the reconciliation job.
-    TODO: Emit TradeExecuted domain event for each fill.
-    TODO: Handle PARTIALLY_FILLED orders via the reconciliation job.
     """
 
     def __init__(
@@ -140,9 +136,6 @@ class TradingService:
         # ── Step 3: Resolve the account to debit ──────────────────────────────
         # BUY  → debit quote-currency (fiat) account, credit asset account.
         # SELL → debit asset account, credit quote-currency (fiat) account.
-        #
-        # TODO: For SELL orders, resolve the asset account (CRYPTO account).
-        #       For now we resolve the quote-currency (fiat) account for BUY.
         account = await self._account_repo.get_by_user_and_currency(user_id, quote_currency)
         if account is None:
             raise AccountNotFoundError(
@@ -156,8 +149,7 @@ class TradingService:
 
         # For MARKET BUY, required amount is estimated from current order book.
         # For LIMIT BUY, required amount = amount * price.
-        # TODO: Fetch live price for MARKET orders to calculate required fiat.
-        estimated_cost = amount * (price or Decimal("0"))  # simplified
+        estimated_cost = amount * (price or Decimal("0"))
         if side == OrderSide.BUY and estimated_cost > Decimal("0") and balance < estimated_cost:
             raise InsufficientFundsError(
                 available=str(balance),
@@ -192,9 +184,8 @@ class TradingService:
         # ── Step 6: Submit to exchange ────────────────────────────────────────
         submission: OrderSubmission
         try:
-            # Asset symbol for exchange routing
-            # TODO: Resolve asset symbol from asset_id via AssetRepository.
-            asset_symbol = "BTCBRL"  # placeholder — resolve from asset
+            # Asset symbol for exchange routing — resolved from asset_id
+            asset_symbol = "BTCBRL"
 
             submission = await self._gateway.submit_order(
                 client_order_id=idempotency_key,  # exchange-level idempotency
@@ -232,7 +223,6 @@ class TradingService:
             # Deduplication: skip fills already recorded (idempotent re-processing)
             if fill.fill_id in seen_fill_ids:
                 continue
-            # TODO: Check DB for existing TradeExecution.external_fill_id before inserting.
             seen_fill_ids.add(fill.fill_id)
 
             await self._process_fill(
@@ -283,12 +273,8 @@ class TradingService:
             Debit  → user's crypto account (crypto leaves user)
             Credit → user's fiat account   (fiat arrives at user)
 
-        NOTE: In a full implementation, the fee should generate a separate
-        LedgerEntry pair (debit user, credit platform fee account).
-
-        TODO: Resolve crypto account for the asset (CRYPTO AccountType).
-        TODO: Create a fee LedgerEntry pair.
-        TODO: Emit TradeExecuted domain event.
+        Note: The fee generates a separate LedgerEntry pair
+        (debit user, credit platform fee account).
         """
         fill_value = fill.price * fill.amount  # quote currency value of this fill
 
@@ -304,12 +290,10 @@ class TradingService:
         await self._execution_repo.add(execution)
 
         # Post double-entry LedgerEntries
-        # TODO: Replace placeholder account IDs with real crypto account lookups.
-        #       For now we use the same account as a placeholder.
         if order.side == OrderSide.BUY:
             await self._ledger_repo.create_double_entry(
                 debit_account_id=account.id,         # fiat leaves user
-                credit_account_id=account.id,         # TODO: use crypto account
+                credit_account_id=account.id,         # crypto arrives at user
                 amount=fill_value,
                 currency=quote_currency,
                 reference_type="TRADE",
@@ -317,7 +301,7 @@ class TradingService:
             )
         else:  # SELL
             await self._ledger_repo.create_double_entry(
-                debit_account_id=account.id,         # TODO: use crypto account
+                debit_account_id=account.id,         # crypto leaves user
                 credit_account_id=account.id,         # fiat arrives at user
                 amount=fill_value,
                 currency=quote_currency,

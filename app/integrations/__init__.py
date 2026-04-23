@@ -27,7 +27,7 @@ __all__ = [
     # Production implementations
     "HttpExchangeGateway",
     "HttpBankingGateway",
-    # Stubs
+    # Test implementations
     "StubExchangeGateway",
     "StubBankingGateway",
 ]

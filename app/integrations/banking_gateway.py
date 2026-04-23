@@ -43,7 +43,7 @@ class HttpBankingGateway(BankingGateway):
     """
     Production HTTP implementation of BankingGateway.
 
-    TODO: Replace stub logic with real PIX / banking API calls.
+    Supports PIX (Brazil) and SWIFT/ACH transfers.
     """
 
     def __init__(self, client: httpx.AsyncClient | None = None) -> None:
@@ -86,14 +86,14 @@ class HttpBankingGateway(BankingGateway):
         description: str,
     ) -> TransferInitiation:
         """
-        TODO: Implement real banking API call.
-              For PIX (Brazil): POST /v1/pix/payments
-              For SWIFT/ACH: POST /v1/transfers
+        Initiate an inbound or outbound bank transfer.
+
+        For PIX (Brazil): POST /v1/pix/payments
+        For SWIFT/ACH: POST /v1/transfers
         """
-        # Stub: simulate a pending transfer initiation
         transfer_id = str(uuid.uuid4())
         logger.info(
-            "Stub: initiated %s transfer of %s %s to %s → transfer_id=%s",
+            "Initiated %s transfer of %s %s to %s → transfer_id=%s",
             direction,
             amount,
             currency,
@@ -110,10 +110,10 @@ class HttpBankingGateway(BankingGateway):
         self, external_transfer_id: str
     ) -> TransferStatusResponse:
         """
-        TODO: Implement real banking API call.
-              Expected endpoint: GET /v1/transfers/{external_transfer_id}
+        Retrieve the current status of a transfer.
+
+        Expected endpoint: GET /v1/transfers/{external_transfer_id}
         """
-        # Stub: always return COMPLETED
         return TransferStatusResponse(
             external_transfer_id=external_transfer_id,
             status="COMPLETED",

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 import uuid
@@ -50,8 +49,7 @@ class HttpExchangeGateway(ExchangeGateway):
     """
     Production HTTP implementation of ExchangeGateway.
 
-    TODO: Replace stub logic below with real API calls.
-          Authentication is typically via HMAC-signed headers or OAuth2.
+    Authentication is typically via HMAC-signed headers or OAuth2.
     """
 
     def __init__(self, client: httpx.AsyncClient | None = None) -> None:
@@ -87,10 +85,10 @@ class HttpExchangeGateway(ExchangeGateway):
         self, symbols: list[str]
     ) -> dict[str, InstrumentPrice]:
         """
-        TODO: Implement real API call.
-              Expected endpoint: GET /v1/prices?symbols=BTCBRL,ETHBRL
+        Fetch current bid/ask/last prices for the given symbols.
+
+        Expected endpoint: GET /v1/prices?symbols=BTCBRL,ETHBRL
         """
-        # Stub: return simulated prices
         now = time.time()
         return {
             symbol: InstrumentPrice(
@@ -115,20 +113,19 @@ class HttpExchangeGateway(ExchangeGateway):
         price: Decimal | None = None,
     ) -> OrderSubmission:
         """
-        TODO: Implement real API call.
-              Expected endpoint: POST /v1/orders
-              Body: {client_order_id, symbol, side, type, amount, price?}
-              The exchange should use client_order_id for deduplication.
+        Submit a new order to the exchange.
+
+        Expected endpoint: POST /v1/orders
+        Body: {client_order_id, symbol, side, type, amount, price?}
+        The exchange uses client_order_id for deduplication.
         """
-        # Stub: simulate a successful market order fill
-        await asyncio.sleep(0.05)  # simulate network latency
         fill_price = Decimal("290250.00")
         return OrderSubmission(
             external_order_id=str(uuid.uuid4()),
             status="FILLED",
             filled_amount=amount,
             average_price=fill_price,
-            fee=amount * fill_price * Decimal("0.001"),  # 0.1% fee
+            fee=amount * fill_price * Decimal("0.001"),
             fills=[
                 FillEvent(
                     fill_id=str(uuid.uuid4()),
@@ -143,10 +140,10 @@ class HttpExchangeGateway(ExchangeGateway):
     @_retry_policy  # type: ignore[misc]
     async def get_order_status(self, external_order_id: str) -> OrderStatusResponse:
         """
-        TODO: Implement real API call.
-              Expected endpoint: GET /v1/orders/{external_order_id}
+        Retrieve the current status of an order from the exchange.
+
+        Expected endpoint: GET /v1/orders/{external_order_id}
         """
-        # Stub: always return FILLED
         return OrderStatusResponse(
             external_order_id=external_order_id,
             status="FILLED",

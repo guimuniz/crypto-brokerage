@@ -70,15 +70,10 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 # ── Gateway dependencies ──────────────────────────────────────────────────────
-# In production, use a DI container or lifespan-managed singletons to reuse
-# the underlying httpx.AsyncClient across requests. For this shell, new
-# instances are created per request — acceptable for a demo.
 
 
 async def get_exchange_gateway() -> ExchangeGateway:
     """Provide the exchange gateway implementation."""
-    # TODO: Switch between HttpExchangeGateway and StubExchangeGateway
-    #       based on settings.environment or a feature flag.
     return HttpExchangeGateway()
 
 

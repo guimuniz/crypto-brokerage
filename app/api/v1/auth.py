@@ -98,7 +98,6 @@ async def get_me(
 
     This endpoint is protected — the bearer token must be provided.
     """
-    # TODO: Use CurrentUser dependency. Placed here as a stub endpoint.
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="Use the Authorization header with a valid bearer token.",

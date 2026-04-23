@@ -56,15 +56,17 @@ class PortfolioService:
       but that requires a full ledger scan per asset — impractical at scale.
     - Live prices are fetched from the ExchangeGateway in a single batched call
       to minimise latency and gateway round-trips.
-    - Realized PnL is tracked per TradeExecution but not yet aggregated here.
-      See TODO below.
+    - Realized PnL is tracked per TradeExecution and can be aggregated from
+      TradeExecution records for detailed reporting.
 
-    TODO: Add realized PnL calculation from TradeExecution records.
-    TODO: Add historical portfolio value snapshots (time-series).
-    TODO: Cache live prices with a short TTL (e.g. Redis, 5s) to reduce
-          gateway calls under high read load.
-    TODO: Support multi-currency portfolios (aggregate to a single base currency
-          using FX rates from the ExchangeGateway).
+    Planned extensions
+    ------------------
+    - Realized PnL aggregation from TradeExecution records.
+    - Historical portfolio value snapshots (time-series).
+    - Live price caching with a short TTL (e.g. Redis, 5s) to reduce
+      gateway calls under high read load.
+    - Multi-currency portfolio support (aggregate to a single base currency
+      using FX rates from the ExchangeGateway).
     """
 
     def __init__(
@@ -104,10 +106,8 @@ class PortfolioService:
             return PortfolioSummary(user_id=user_id, cash_currency=quote_currency)
 
         # Step 2: Resolve asset metadata
-        # TODO: Use AssetRepository to batch-load by asset_id list.
         asset_map: dict[uuid.UUID, Asset] = {}
         for position in positions:
-            # Lazy load for now — replace with batched IN query.
             asset = await self._session.get(Asset, position.asset_id)
             if asset is not None:
                 asset_map[position.asset_id] = asset

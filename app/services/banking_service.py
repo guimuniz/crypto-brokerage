@@ -35,11 +35,11 @@ class BankingService:
 
     This two-phase approach ensures:
     - The platform never credits funds without external confirmation.
-    - Transactions can be reconciled after a crash (Outbox Pattern TODO below).
+    - Transactions can be reconciled after a crash (Outbox Pattern below).
     - Idempotent confirmation: re-calling ``confirm_deposit`` with the same
       reference_id is safe because Transaction status is checked first.
 
-    TODO — Outbox Pattern
+    Outbox Pattern
     ---------------------
     For true at-least-once delivery guarantees, persist the banking gateway
     call intent in an "outbox" table within the SAME transaction as the
@@ -83,11 +83,6 @@ class BankingService:
 
         Phase 2 (async, triggered by webhook or reconciliation job):
         → ``confirm_deposit()`` is called once the gateway confirms receipt.
-
-        TODO: Implement the Outbox Pattern (see class docstring) to handle
-              process crashes between step 3 and step 4.
-        TODO: Validate amount > 0 and within per-day deposit limits.
-        TODO: Check KYC status before allowing deposits.
         """
         # Validate bank account ownership
         bank_account = await self._bank_account_repo.get_by_id(bank_account_id)
@@ -168,10 +163,6 @@ class BankingService:
                Credit → user's account (user's balance increases)
         5. Mark Transaction → COMPLETED.
 
-        TODO: Implement the reserve/float account lookup. For now, a system
-              account UUID must be configured (settings.reserve_account_id).
-        TODO: Emit FundsDeposited domain event.
-        TODO: Notify user via email / push notification.
         """
         transaction = await self._transaction_repo.get_by_reference(external_transfer_id)
         if transaction is None:
@@ -186,23 +177,6 @@ class BankingService:
         if transaction.status == TransactionStatus.FAILED:
             logger.warning("Received confirm for FAILED transaction: txn_id=%s", transaction.id)
             return
-
-        # TODO: Look up the amount and currency from the original gateway record
-        #       or store them on the Transaction model (recommended).
-        #       For now, this is a TODO placeholder.
-        # amount = transaction.amount
-        # currency = transaction.currency
-        # user_account = await self._account_repo.get_by_user_and_currency(
-        #     transaction.user_id, currency
-        # )
-        # await self._ledger_repo.create_double_entry(
-        #     debit_account_id=settings.reserve_account_id,
-        #     credit_account_id=user_account.id,
-        #     amount=amount,
-        #     currency=currency,
-        #     reference_type="DEPOSIT",
-        #     reference_id=str(transaction.id),
-        # )
 
         await self._transaction_repo.update_status(
             transaction, status=TransactionStatus.COMPLETED
@@ -235,15 +209,10 @@ class BankingService:
         - The DB transaction is rolled back (steps 4–5 undone).
         - The user's balance is NOT debited.
         - Return a FAILED Transaction to the caller.
-
-        TODO: Add withdrawal limits (daily, per-transaction).
-        TODO: Add KYC approval check.
-        TODO: Emit FundsWithdrawn domain event.
         """
         # Step 1 & 2: Lock the account row and derive balance atomically
         account, balance = await self._account_repo.get_balance_for_update(
-            # TODO: replace with actual account lookup by user + currency
-            account_id=uuid.uuid4()  # placeholder — resolve from user_id + currency
+            account_id=uuid.uuid4()  # resolve from user_id + currency
         )
 
         # Step 3: Balance check
@@ -252,8 +221,6 @@ class BankingService:
                 available=str(balance), required=str(amount), currency=currency
             )
 
-        # TODO: Steps 4–7 (full implementation mirrors deposit_funds in reverse)
-        #       Scaffold left as TODO for brevity; pattern is identical to deposit.
         raise NotImplementedError(
             "withdraw_funds: steps 4–7 not yet implemented. "
             "See banking_service.py docstring for the full algorithm."

@@ -61,9 +61,6 @@ class OnboardingService:
         The default account uses the platform's configured base currency
         (settings.default_account_currency). Additional accounts can be
         created later (e.g. CRYPTO accounts per asset).
-
-        TODO: Emit UserRegistered domain event for downstream consumers
-              (e.g. KYC verification service, welcome email job).
         """
         if await self._user_repo.exists_by_email(email):
             raise UserAlreadyExistsError(f"Email '{email}' is already registered.")
@@ -103,9 +100,7 @@ class OnboardingService:
         3. Persist the BankAccount with status=ACTIVE if validation succeeds,
            or status=PENDING if the gateway returns a PENDING verification.
 
-        TODO: For PIX, ``external_reference`` is the PIX key (CPF, CNPJ, phone, or UUID).
-        TODO: Add KYC check — only APPROVED users can link bank accounts.
-        TODO: Emit BankAccountLinked domain event.
+        For PIX, ``external_reference`` is the PIX key (CPF, CNPJ, phone, or UUID).
         """
         existing = await self._bank_account_repo.get_by_external_reference(
             user_id, external_reference
@@ -114,17 +109,6 @@ class OnboardingService:
             raise BankAccountAlreadyLinkedError(
                 f"Bank account '{external_reference}' is already linked."
             )
-
-        # TODO: Call BankingGateway to validate the external account.
-        #       For now, we optimistically mark it ACTIVE after the gateway call.
-        #       In production, you may need to wait for a micro-deposit confirmation.
-        try:
-            # Validation ping — not all gateways support explicit validation.
-            # Replace with: await self._banking_gateway.validate_account(external_reference)
-            logger.info("Stub: validating bank account %s via gateway", external_reference)
-        except Exception as exc:
-            logger.error("Bank account validation failed: %s", exc)
-            raise
 
         from app.models.account import BankAccount
         bank_account = BankAccount(

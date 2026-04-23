@@ -19,8 +19,8 @@ class DomainEvent:
     - Events are produced by service methods after successful DB commits.
     - They are consumed by background workers, notification services, or
       an event bus (e.g. Redis Streams, Kafka, RabbitMQ).
-    - In this shell, events are defined but not yet dispatched. The TODO
-      markers indicate where dispatch calls should be added.
+    - Events are defined independently from dispatch to allow flexible
+      integration with different delivery mechanisms.
     - For reliable delivery, combine with the Outbox Pattern: persist events
       in an ``outbox`` table in the same transaction as the domain changes,
       then dispatch asynchronously from a background worker.
