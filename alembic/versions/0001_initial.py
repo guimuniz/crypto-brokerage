@@ -18,39 +18,26 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ── Enums ─────────────────────────────────────────────────────────────────
-    kyc_status_enum = postgresql.ENUM(
-        "PENDING", "APPROVED", "REJECTED", name="kyc_status_enum"
-    )
-    account_type_enum = postgresql.ENUM(
-        "FIAT", "CRYPTO", "RESERVE", name="account_type_enum"
-    )
-    bank_account_status_enum = postgresql.ENUM(
-        "PENDING", "ACTIVE", "INACTIVE", "REJECTED", name="bank_account_status_enum"
-    )
-    asset_type_enum = postgresql.ENUM(
-        "CRYPTO", "FIAT", "STOCK", "COMMODITY", name="asset_type_enum"
-    )
-    order_side_enum = postgresql.ENUM("BUY", "SELL", name="order_side_enum")
-    order_type_enum = postgresql.ENUM("MARKET", "LIMIT", name="order_type_enum")
-    order_status_enum = postgresql.ENUM(
-        "PENDING", "PARTIALLY_FILLED", "FILLED", "FAILED", "CANCELLED",
-        name="order_status_enum"
-    )
-    transaction_type_enum = postgresql.ENUM(
-        "DEPOSIT", "WITHDRAW", "TRADE", "FEE", name="transaction_type_enum"
-    )
-    transaction_status_enum = postgresql.ENUM(
-        "PENDING", "PROCESSING", "COMPLETED", "FAILED", "REVERSED",
-        name="transaction_status_enum"
-    )
-
-    for enum in [
-        kyc_status_enum, account_type_enum, bank_account_status_enum,
-        asset_type_enum, order_side_enum, order_type_enum, order_status_enum,
-        transaction_type_enum, transaction_status_enum,
-    ]:
-        enum.create(op.get_bind(), checkfirst=True)
+    # ── Enums (use DO blocks for IF NOT EXISTS support) ─────────────────────
+    enums = {
+        "kyc_status_enum": ("PENDING", "APPROVED", "REJECTED"),
+        "account_type_enum": ("FIAT", "CRYPTO", "RESERVE"),
+        "bank_account_status_enum": ("PENDING", "ACTIVE", "INACTIVE", "REJECTED"),
+        "asset_type_enum": ("CRYPTO", "FIAT", "STOCK", "COMMODITY"),
+        "order_side_enum": ("BUY", "SELL"),
+        "order_type_enum": ("MARKET", "LIMIT"),
+        "order_status_enum": ("PENDING", "PARTIALLY_FILLED", "FILLED", "FAILED", "CANCELLED"),
+        "transaction_type_enum": ("DEPOSIT", "WITHDRAW", "TRADE", "FEE"),
+        "transaction_status_enum": ("PENDING", "PROCESSING", "COMPLETED", "FAILED", "REVERSED"),
+    }
+    for name, values in enums.items():
+        values_str = ", ".join(f"'{v}'" for v in values)
+        op.execute(sa.text(
+            f"DO $$ BEGIN "
+            f"IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '{name}') THEN "
+            f"CREATE TYPE {name} AS ENUM ({values_str}); "
+            f"END IF; END $$;"
+        ))
 
     # ── users ─────────────────────────────────────────────────────────────────
     op.create_table(
@@ -71,7 +58,7 @@ def upgrade() -> None:
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("full_name", sa.String(255), nullable=False),
         sa.Column("tax_id", sa.String(64), nullable=True),
-        sa.Column("kyc_status", sa.Enum("PENDING", "APPROVED", "REJECTED", name="kyc_status_enum"), nullable=False, server_default="PENDING"),
+        sa.Column("kyc_status", postgresql.ENUM("PENDING", "APPROVED", "REJECTED", name="kyc_status_enum", create_type=False), nullable=False, server_default="PENDING"),
         sa.Column("country", sa.String(2), nullable=False, server_default="BR"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
@@ -86,7 +73,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("currency", sa.String(10), nullable=False),
-        sa.Column("account_type", sa.Enum("FIAT", "CRYPTO", "RESERVE", name="account_type_enum"), nullable=False),
+        sa.Column("account_type", postgresql.ENUM("FIAT", "CRYPTO", "RESERVE", name="account_type_enum", create_type=False), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
@@ -101,7 +88,7 @@ def upgrade() -> None:
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("external_reference", sa.String(255), nullable=False),
         sa.Column("bank_name", sa.String(100), nullable=False),
-        sa.Column("status", sa.Enum("PENDING", "ACTIVE", "INACTIVE", "REJECTED", name="bank_account_status_enum"), nullable=False, server_default="PENDING"),
+        sa.Column("status", postgresql.ENUM("PENDING", "ACTIVE", "INACTIVE", "REJECTED", name="bank_account_status_enum", create_type=False), nullable=False, server_default="PENDING"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
@@ -114,7 +101,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("symbol", sa.String(20), nullable=False),
         sa.Column("name", sa.String(100), nullable=False),
-        sa.Column("asset_type", sa.Enum("CRYPTO", "FIAT", "STOCK", "COMMODITY", name="asset_type_enum"), nullable=False),
+        sa.Column("asset_type", postgresql.ENUM("CRYPTO", "FIAT", "STOCK", "COMMODITY", name="asset_type_enum", create_type=False), nullable=False),
         sa.Column("network", sa.String(50), nullable=True),
         sa.Column("precision", sa.Integer(), nullable=False, server_default="8"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
@@ -128,12 +115,12 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("asset_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("side", sa.Enum("BUY", "SELL", name="order_side_enum"), nullable=False),
-        sa.Column("order_type", sa.Enum("MARKET", "LIMIT", name="order_type_enum"), nullable=False),
+        sa.Column("side", postgresql.ENUM("BUY", "SELL", name="order_side_enum", create_type=False), nullable=False),
+        sa.Column("order_type", postgresql.ENUM("MARKET", "LIMIT", name="order_type_enum", create_type=False), nullable=False),
         sa.Column("amount", sa.Numeric(36, 18), nullable=False),
         sa.Column("filled_amount", sa.Numeric(36, 18), nullable=False, server_default="0"),
         sa.Column("price", sa.Numeric(36, 18), nullable=True),
-        sa.Column("status", sa.Enum("PENDING", "PARTIALLY_FILLED", "FILLED", "FAILED", "CANCELLED", name="order_status_enum"), nullable=False, server_default="PENDING"),
+        sa.Column("status", postgresql.ENUM("PENDING", "PARTIALLY_FILLED", "FILLED", "FAILED", "CANCELLED", name="order_status_enum", create_type=False), nullable=False, server_default="PENDING"),
         sa.Column("idempotency_key", sa.String(128), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
@@ -181,8 +168,8 @@ def upgrade() -> None:
         "transactions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("transaction_type", sa.Enum("DEPOSIT", "WITHDRAW", "TRADE", "FEE", name="transaction_type_enum"), nullable=False),
-        sa.Column("status", sa.Enum("PENDING", "PROCESSING", "COMPLETED", "FAILED", "REVERSED", name="transaction_status_enum"), nullable=False, server_default="PENDING"),
+        sa.Column("transaction_type", postgresql.ENUM("DEPOSIT", "WITHDRAW", "TRADE", "FEE", name="transaction_type_enum", create_type=False), nullable=False),
+        sa.Column("status", postgresql.ENUM("PENDING", "PROCESSING", "COMPLETED", "FAILED", "REVERSED", name="transaction_status_enum", create_type=False), nullable=False, server_default="PENDING"),
         sa.Column("reference_id", sa.String(255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),

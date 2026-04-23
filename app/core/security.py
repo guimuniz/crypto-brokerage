@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
 from app.core.exceptions import AuthenticationError
@@ -12,19 +12,16 @@ from app.core.exceptions import AuthenticationError
 settings = get_settings()
 
 # ── Password hashing ──────────────────────────────────────────────────────────
-# bcrypt is intentionally slow to resist brute-force attacks.
-# schemes list allows future algorithm migration via deprecated="auto".
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(plain_password: str) -> str:
     """Return the bcrypt hash of *plain_password*."""
-    return _pwd_context.hash(plain_password)
+    return bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Return True if *plain_password* matches the stored *hashed_password*."""
-    return _pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 # ── JWT tokens ────────────────────────────────────────────────────────────────
