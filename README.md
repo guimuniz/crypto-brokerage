@@ -1,133 +1,133 @@
 # Crypto Brokerage Platform
 
-Plataforma de corretora de criptomoedas construída com **FastAPI**, demonstrando arquitetura limpa, contabilidade de dupla entrada (_double-entry accounting_), trading idempotente e integrações resilientes.
+A cryptocurrency brokerage platform built with **FastAPI**, demonstrating clean architecture, double-entry accounting, idempotent trading, and resilient integrations.
 
 ## Stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 |---|---|
-| Framework Web | FastAPI + Uvicorn |
-| Banco de Dados | PostgreSQL 16 (asyncpg) |
+| Web Framework | FastAPI + Uvicorn |
+| Database | PostgreSQL 16 (asyncpg) |
 | ORM / Migrations | SQLAlchemy 2.0 (async) + Alembic |
-| Validação | Pydantic v2 |
-| Autenticação | JWT (python-jose + passlib/bcrypt) |
+| Validation | Pydantic v2 |
+| Authentication | JWT (python-jose + passlib/bcrypt) |
 | HTTP Client | httpx |
-| Resiliência | tenacity (retry com backoff) |
-| Gerenciador de pacotes | uv |
-| Containerização | Docker + Docker Compose |
+| Resilience | tenacity (retry with backoff) |
+| Package Manager | uv |
+| Containerization | Docker + Docker Compose |
 
-## Arquitetura
+## Architecture
 
 ```
-API Layer (app/api/)          → Rotas, schemas, dependency injection
-Service Layer (app/services/) → Regras de negócio / use cases
-Repository Layer (app/repos/) → Acesso a dados (async SQLAlchemy)
-Integration Layer (app/integ.)→ Gateways externos (Exchange, Banking)
-Model Layer (app/models/)     → Modelos SQLAlchemy 2.0
-Core (app/core/)              → Config, DB, segurança, exceções
+API Layer (app/api/)          → Routes, schemas, dependency injection
+Service Layer (app/services/) → Business rules / use cases
+Repository Layer (app/repos/) → Data access (async SQLAlchemy)
+Integration Layer (app/integ.)→ External gateways (Exchange, Banking)
+Model Layer (app/models/)     → SQLAlchemy 2.0 models
+Core (app/core/)              → Config, DB, security, exceptions
 ```
 
-Os endpoints estão versionados em `/api/v1` e organizados em:
+Endpoints are versioned under `/api/v1` and organized into:
 
-- **Auth** — registro, login, refresh token
-- **Accounts** — criação e consulta de contas
-- **Trading** — criação de ordens de compra/venda
-- **Portfolio** — consulta de posições e saldo
+- **Auth** — registration, login, token refresh
+- **Accounts** — account creation and retrieval
+- **Trading** — buy/sell order creation
+- **Portfolio** — positions and balance queries
 
-> Para detalhes completos da arquitetura, veja [ARCHITECTURE.md](ARCHITECTURE.md).
+> For full architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Pré-requisitos
+## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/install/)
-- (Opcional para desenvolvimento local) Python 3.12+ e [uv](https://github.com/astral-sh/uv)
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- (Optional for local development) Python 3.12+ and [uv](https://github.com/astral-sh/uv)
 
-## Início rápido com Docker
+## Quick Start with Docker
 
-### 1. Clone o repositório
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/guilherme-castro-braza/crypto-brokerage.git
 cd crypto-brokerage
 ```
 
-### 2. Configure as variáveis de ambiente
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` conforme necessário. As variáveis disponíveis são:
+Edit `.env` as needed. Available variables:
 
-| Variável | Descrição | Default |
+| Variable | Description | Default |
 |---|---|---|
-| `DATABASE_URL` | String de conexão PostgreSQL | `postgresql+asyncpg://brokerage:brokerage@localhost:5432/brokerage` |
-| `JWT_SECRET_KEY` | Chave secreta para tokens JWT | `CHANGE_ME...` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql+asyncpg://brokerage:brokerage@localhost:5432/brokerage` |
+| `JWT_SECRET_KEY` | Secret key for JWT tokens | `CHANGE_ME...` |
 | `ENVIRONMENT` | `development` / `staging` / `production` | `development` |
-| `DEBUG` | Modo debug | `false` |
-| `EXCHANGE_API_URL` | URL da API da exchange | — |
-| `EXCHANGE_API_KEY` | Chave da API da exchange | — |
-| `EXCHANGE_API_SECRET` | Secret da API da exchange | — |
-| `BANKING_API_URL` | URL da API bancária | — |
-| `BANKING_API_KEY` | Chave da API bancária | — |
+| `DEBUG` | Debug mode | `false` |
+| `EXCHANGE_API_URL` | Exchange API URL | — |
+| `EXCHANGE_API_KEY` | Exchange API key | — |
+| `EXCHANGE_API_SECRET` | Exchange API secret | — |
+| `BANKING_API_URL` | Banking API URL | — |
+| `BANKING_API_KEY` | Banking API key | — |
 
-### 3. Suba os containers
+### 3. Start the containers
 
 ```bash
 docker compose up --build -d
 ```
 
-Isso inicia três serviços:
+This starts three services:
 
-| Serviço | Descrição | Porta |
+| Service | Description | Port |
 |---|---|---|
 | **db** | PostgreSQL 16 (Alpine) | `5432` |
-| **migrate** | Executa `alembic upgrade head` e encerra | — |
-| **api** | Uvicorn servindo a FastAPI | `8000` |
+| **migrate** | Runs `alembic upgrade head` and exits | — |
+| **api** | Uvicorn serving the FastAPI app | `8000` |
 
-### 4. Acesse a API
+### 4. Access the API
 
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## Desenvolvimento local (sem Docker)
+## Local Development (without Docker)
 
 ```bash
-# Instale as dependências (incluindo dev)
+# Install dependencies (including dev)
 uv sync
 
-# Suba um PostgreSQL (ex: via Docker)
+# Start a PostgreSQL instance (e.g. via Docker)
 docker compose up db -d
 
-# Execute as migrations
+# Run migrations
 alembic upgrade head
 
-# Inicie o servidor
+# Start the server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Comandos úteis
+## Useful Commands
 
 ```bash
-# Ver logs da API
+# View API logs
 docker compose logs -f api
 
-# Parar todos os containers
+# Stop all containers
 docker compose down
 
-# Parar e remover volumes (limpa o banco)
+# Stop and remove volumes (clears the database)
 docker compose down -v
 
-# Executar linter
+# Run linter
 uv run ruff check .
 
-# Executar type checker
+# Run type checker
 uv run mypy app/
 
-# Executar testes
+# Run tests
 uv run pytest
 ```
 
-## Estrutura do projeto
+## Project Structure
 
 ```
 crypto-brokerage/
@@ -136,20 +136,16 @@ crypto-brokerage/
 │   ├── api/
 │   │   ├── deps.py          # Dependency injection (FastAPI Depends)
 │   │   ├── schemas/         # Pydantic v2 request/response models
-│   │   └── v1/              # Rotas versionadas
-│   ├── services/            # Lógica de negócio
-│   ├── repositories/        # Acesso a dados (async)
-│   ├── models/              # Modelos SQLAlchemy 2.0
-│   ├── integrations/        # Gateways externos (ABC + implementações)
-│   ├── events/              # Eventos de domínio
+│   │   └── v1/              # Versioned route handlers
+│   ├── services/            # Business logic
+│   ├── repositories/        # Data access (async)
+│   ├── models/              # SQLAlchemy 2.0 models
+│   ├── integrations/        # External gateways (ABC + implementations)
+│   ├── events/              # Domain events
 │   └── core/                # Config, database, security, exceptions
-├── alembic/                 # Migrations do banco de dados
-├── docker-compose.yml       # Orquestração dos serviços
-├── Dockerfile               # Build multi-stage (builder + runtime)
-├── pyproject.toml           # Dependências e configuração de ferramentas
-└── ARCHITECTURE.md          # Documentação detalhada da arquitetura
+├── alembic/                 # Database migrations
+├── docker-compose.yml       # Service orchestration
+├── Dockerfile               # Multi-stage build (builder + runtime)
+├── pyproject.toml           # Dependencies and tool configuration
+└── ARCHITECTURE.md          # Detailed architecture documentation
 ```
-
-## Licença
-
-Este projeto é um demo de arquitetura e não possui licença aberta definida.
